@@ -155,6 +155,7 @@ int main(int argc, char *argv[]) {
         exit_on_error("Radius has to be non-negative!");
     }
 
+
     if (set_options.times < 0) {
         exit_on_error("Times has to be non-negative!");
     }

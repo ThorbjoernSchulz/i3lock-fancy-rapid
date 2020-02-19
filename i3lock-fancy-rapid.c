@@ -54,7 +54,7 @@ static struct set_options {
     int radius, times;
 
     enum {
-        OVERLAY=1, DIM=2,
+        OVERLAY = 1, DIM = 2,
     } operations;
 
     const char *overlay_path;
@@ -62,11 +62,11 @@ static struct set_options {
 } set_options;
 
 static void destroy_options(void) {
-    free((void *)set_options.overlay_path);
+    free((void *) set_options.overlay_path);
 }
 
 static void usage(const char *program_name) {
-    static const char msg[] =\
+    static const char msg[] = \
     "%s [-h] mode [operations]\n"
     "Modes:\n"
     "  --pixelate radius        Pixelates the screen. 'radius' defines the pixel size.\n"
@@ -86,7 +86,7 @@ static struct option options[] = {
         {"overlay",  required_argument, 0, 'o'},
         {"offset",   required_argument, 0, 'g'},
         {"dim",      no_argument,       0, 'd'},
-        {0, 0, 0, 0},
+        {0, 0,                          0, 0},
 };
 
 static int setup_options(int argc, char *argv[]) {
@@ -155,7 +155,6 @@ int main(int argc, char *argv[]) {
         exit_on_error("Radius has to be non-negative!");
     }
 
-
     if (set_options.times < 0) {
         exit_on_error("Times has to be non-negative!");
     }
@@ -186,7 +185,8 @@ int main(int argc, char *argv[]) {
                 set_options.overlay_y_offset, set_options.overlay_x_offset);
     }
 
-    write(STDOUT_FILENO, screenshot.data, screenshot.height * screenshot.width * 3);
+    write(STDOUT_FILENO, screenshot.data,
+          screenshot.height * screenshot.width * 3);
     destroy_options();
 
     return EXIT_SUCCESS;

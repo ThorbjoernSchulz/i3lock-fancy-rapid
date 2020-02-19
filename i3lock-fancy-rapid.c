@@ -38,22 +38,13 @@
 
 #include <getopt.h>
 #include <png.h>
+#include <sys/wait.h>
 
 #include "screenshot.h"
 #include "blur.h"
 #include "operations.h"
 
 #define power_of_2(x)   ((x) && (((x) & ((x)-1)) == 0))
-
-static const char *option_s = "h:b:p:o:g:d";
-static struct option options[] = {
-        {"help",     no_argument,       0, 'h'},
-        {"blur",     required_argument, 0, 'b'},
-        {"pixelate", required_argument, 0, 'p'},
-        {"overlay",  required_argument, 0, 'o'},
-        {"offset",   required_argument, 0, 'g'},
-        {"dim",      no_argument,       0, 'd'},
-};
 
 static struct set_options {
     enum {
@@ -74,11 +65,36 @@ static void destroy_options(void) {
     free((void *)set_options.overlay_path);
 }
 
+static void usage(const char *program_name) {
+    static const char msg[] =\
+    "%s [-h] mode [operations]\n"
+    "Modes:\n"
+    "  --pixelate radius        Pixelates the screen. 'radius' defines the pixel size.\n"
+    "  --blur radius:times      Blurs the screen more smoothly. 'times' defines how\n"
+    "                           often blurring is applied.\n"
+    "Operations:\n"
+    "  --dim                    Dims the distorted screen.\n"
+    "  --overlay png            Draws 'png' on top of the distorted screen.\n";
+    fprintf(stderr, msg, program_name);
+}
+
+static const char *option_s = "hb:p:o:g:d";
+static struct option options[] = {
+        {"help",     no_argument,       0, 'h'},
+        {"blur",     required_argument, 0, 'b'},
+        {"pixelate", required_argument, 0, 'p'},
+        {"overlay",  required_argument, 0, 'o'},
+        {"offset",   required_argument, 0, 'g'},
+        {"dim",      no_argument,       0, 'd'},
+        {0, 0, 0, 0},
+};
+
 static int setup_options(int argc, char *argv[]) {
     char flg;
     while ((flg = (char) getopt_long(argc, argv, option_s, options, 0)) != -1) {
         switch (flg) {
             case 'h':
+                usage(argv[0]);
                 exit(0);
             case 'b':
                 set_options.mode |= BLUR;
@@ -114,8 +130,19 @@ static int setup_options(int argc, char *argv[]) {
     return 0;
 }
 
-void usage(const char *program_name) {
-    (void)program_name;
+static void exit_on_error(const char *message) {
+    fprintf(stderr, "%s\n", message);
+    int status = 0;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("notify-send", "notify-send", message, 0);
+        exit(1);
+    }
+    wait(&status);
+    if (status) {
+        fprintf(stderr, "notify-send ended with status: %d\n", status);
+    }
+    exit(1);
 }
 
 int main(int argc, char *argv[]) {
@@ -125,18 +152,15 @@ int main(int argc, char *argv[]) {
     }
 
     if (set_options.radius < 0) {
-        fprintf(stderr, "Radius has to be non-negative!\n");
-        exit(EXIT_FAILURE);
+        exit_on_error("Radius has to be non-negative!");
     }
 
     if (set_options.times < 0) {
-        fprintf(stderr, "Times has to be non-negative!\n");
-        exit(EXIT_FAILURE);
+        exit_on_error("Times has to be non-negative!");
     }
 
     if (!power_of_2(set_options.mode)) {
-        fprintf(stderr, "Exactly one mode has to be specified\n");
-        exit(EXIT_FAILURE);
+        exit_on_error("Exactly one mode has to be specified\n");
     }
 
     Screenshot screenshot = take_screenshot();
@@ -153,9 +177,7 @@ int main(int argc, char *argv[]) {
     screenshot.data = buffer;
 
     if (set_options.operations & DIM) {
-        for (long i = 0; i < screenshot.height * screenshot.width * 3; ++i) {
-            screenshot.data[i] *= 0.50;
-        }
+        dim(&screenshot, 0.5);
     }
 
     if (set_options.operations & OVERLAY) {

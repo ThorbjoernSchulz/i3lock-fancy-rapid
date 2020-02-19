@@ -3,6 +3,12 @@
 
 #include "operations.h"
 
+void dim(Screenshot *s, double factor) {
+    for (long i = 0; i < s->height * s->width * 3; ++i) {
+        s->data[i] *= 1.0 - factor;
+    }
+}
+
 void overlay(Screenshot *s, const char *png_file,
              int off_y, int off_x) {
     FILE *file = fopen(png_file, "rb");

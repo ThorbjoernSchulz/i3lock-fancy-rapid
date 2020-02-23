@@ -3,8 +3,8 @@
 A fork of `i3lock-fancy-rapid`:
 A faster implementation of [i3lock-fancy](https://github.com/meskarune/i3lock-fancy). 
 It is blazing fast and provides a fully configurable box blur. It uses linear-time box blur and accelerates using OpenMP.
-
-Compared to the original, it offers overlay pngs and decouples the 
+---
+Compared to the original, this fork offers overlay pngs and decouples the 
 image generation from i3lock.
 Also error messages are propagated through `notify-send` because
 we usually don't run this in a terminal.
@@ -32,8 +32,8 @@ Modes:
                            often blurring is applied.
 Operations:
   --dim                    Dims the distorted screen.
-  --overlay png            Draws 'png' on top of the distorted screen.
-  --offset x:y             Specifies offset for the overlay.
+  --overlay png:x:y        Draws 'png' on top of the distorted screen. 
+                           x and y specify the offset for the overlay.
 ```
 
 A setup using i3lock could be:

@@ -46,6 +46,21 @@
 
 #define power_of_2(x)   ((x) && (((x) & ((x)-1)) == 0))
 
+static void exit_on_error(const char *message) {
+    fprintf(stderr, "%s\n", message);
+    int status = 0;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("notify-send", "notify-send", message, 0);
+        exit(1);
+    }
+    wait(&status);
+    if (status) {
+        fprintf(stderr, "notify-send ended with status: %d\n", status);
+    }
+    exit(1);
+}
+
 static struct set_options {
     enum {
         BLUR = 1, PIXELATE = 2,
@@ -57,7 +72,7 @@ static struct set_options {
         OVERLAY = 1, DIM = 2,
     } operations;
 
-    const char *overlay_path;
+    char *overlay_path;
     int overlay_x_offset, overlay_y_offset;
 } set_options;
 
@@ -74,22 +89,23 @@ static void usage(const char *program_name) {
     "                           often blurring is applied.\n"
     "Operations:\n"
     "  --dim                    Dims the distorted screen.\n"
-    "  --overlay png            Draws 'png' on top of the distorted screen.\n";
+    "  --overlay png:x:y        Draws 'png' on top of the distorted screen.\n"
+    "                           x and y specify the offset for the overlay.\n";
     fprintf(stderr, msg, program_name);
 }
 
-static const char *option_s = "hb:p:o:g:d";
+static const char *option_s = "hb:p:o:d";
 static struct option options[] = {
         {"help",     no_argument,       0, 'h'},
         {"blur",     required_argument, 0, 'b'},
         {"pixelate", required_argument, 0, 'p'},
         {"overlay",  required_argument, 0, 'o'},
-        {"offset",   required_argument, 0, 'g'},
         {"dim",      no_argument,       0, 'd'},
         {0, 0,                          0, 0},
 };
 
 static int setup_options(int argc, char *argv[]) {
+    static const int FORMATTING_ERROR = 1;
     char flg;
     while ((flg = (char) getopt_long(argc, argv, option_s, options, 0)) != -1) {
         switch (flg) {
@@ -100,7 +116,7 @@ static int setup_options(int argc, char *argv[]) {
                 set_options.mode |= BLUR;
                 if (sscanf(optarg, "%d:%d", &set_options.radius,
                            &set_options.times) != 2) {
-                    return 1;
+                    return FORMATTING_ERROR;
                 }
                 break;
             case 'p':
@@ -110,12 +126,19 @@ static int setup_options(int argc, char *argv[]) {
             case 'o':
                 set_options.operations |= OVERLAY;
                 set_options.overlay_path = strndup(optarg, PATH_MAX);
-                break;
-            case 'g':
-                if (sscanf(optarg, "%d:%d", &set_options.overlay_x_offset,
+
+                if (!set_options.overlay_path) {
+                    exit_on_error("memory allocation error");
+                }
+
+                char *seperator = index(set_options.overlay_path, ':');
+                if (!seperator)
+                    break;
+                *seperator++ = '\0';
+                if (sscanf(seperator, "%d:%d",
+                           &set_options.overlay_x_offset,
                            &set_options.overlay_y_offset) != 2) {
-                    /* TODO: log error */
-                    return 1;
+                    return FORMATTING_ERROR;
                 }
                 break;
             case 'd':
@@ -128,21 +151,6 @@ static int setup_options(int argc, char *argv[]) {
         }
     }
     return 0;
-}
-
-static void exit_on_error(const char *message) {
-    fprintf(stderr, "%s\n", message);
-    int status = 0;
-    pid_t pid = fork();
-    if (pid == 0) {
-        execlp("notify-send", "notify-send", message, 0);
-        exit(1);
-    }
-    wait(&status);
-    if (status) {
-        fprintf(stderr, "notify-send ended with status: %d\n", status);
-    }
-    exit(1);
 }
 
 int main(int argc, char *argv[]) {

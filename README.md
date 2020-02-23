@@ -3,6 +3,7 @@
 A fork of `i3lock-fancy-rapid`:
 A faster implementation of [i3lock-fancy](https://github.com/meskarune/i3lock-fancy). 
 It is blazing fast and provides a fully configurable box blur. It uses linear-time box blur and accelerates using OpenMP.
+
 ---
 Compared to the original, this fork offers overlay pngs and decouples the 
 image generation from i3lock.
